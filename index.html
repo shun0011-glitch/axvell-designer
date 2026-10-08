@@ -1,98 +1,119 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#080a0b">
-<title>AXVELL Direct Designer</title>
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="app.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#080a0b">
+  <title>AXVELL Direct Designer V6</title>
+  <link rel="icon" href="assets/ax-symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <img src="assets/ax-symbol.svg" alt="">
-    <span><b>AXVELL</b><small>DIRECT DESIGNER</small></span>
-  </div>
-  <div class="top-actions">
-    <button id="undoBtn">UNDO</button>
-    <button id="redoBtn">REDO</button>
-    <button id="saveBtn">SAVE</button>
-    <button id="exportBtn" class="primary">PNG</button>
-  </div>
-</header>
-
-<section class="intro">
-  <p>ZX-4R / ZX-4RR 2023–2025</p>
-  <h1>DESIGN DIRECTLY<br>ON THE BIKE.</h1>
-</section>
-
-<section class="vehicle-bar">
-  <div class="seg" id="bodySeg">
-    <button class="active" data-body="black">BLACK</button>
-    <button data-body="white">WHITE</button>
-    <button data-body="green">GREEN</button>
-  </div>
-  <div class="seg side" id="sideSeg">
-    <button class="active" data-side="A">SIDE A</button>
-    <button data-side="B">SIDE B</button>
-  </div>
-</section>
-
-<section class="stage-shell">
-  <div class="stage-scroll" id="stageScroll">
-    <div class="stage" id="stage">
-      <img id="bikeImg" class="bike-img" src="assets/zx4r-black.jpg" alt="ZX-4R">
-      <svg id="designSvg" viewBox="0 0 1448 1086" aria-label="車体デザインキャンバス">
-        <g id="objectsLayer"></g>
-        <g id="selectionLayer"></g>
-      </svg>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="AXVELL">
+      <img src="assets/ax-symbol.svg" alt="">
+      <span><b>AXVELL</b><small>DIRECT DESIGNER V6</small></span>
+    </a>
+    <div class="top-actions">
+      <button id="undoBtn" type="button">UNDO</button>
+      <button id="redoBtn" type="button">REDO</button>
+      <button id="saveBtn" type="button">SAVE</button>
+      <button id="exportBtn" class="primary" type="button">PNG</button>
     </div>
-  </div>
-  <div class="stage-meta">
-    <span id="modeText">SELECT MODE</span>
-    <div class="zoom">
-      <button class="active" data-zoom="1">100%</button>
-      <button data-zoom="1.5">150%</button>
-      <button data-zoom="2">200%</button>
+  </header>
+
+  <section class="intro">
+    <p>ZX-4R / ZX-4RR 2023–2025</p>
+    <h1>DESIGN DIRECTLY<br>ON THE BIKE.</h1>
+  </section>
+
+  <section class="vehicle-controls">
+    <div class="control-block">
+      <span>BODY COLOR</span>
+      <div class="seg" id="bodySeg">
+        <button class="active" type="button" data-body="black">BLACK</button>
+        <button type="button" data-body="white">WHITE</button>
+        <button type="button" data-body="green">GREEN</button>
+      </div>
     </div>
-  </div>
-</section>
-
-<nav class="toolstrip" id="toolstrip">
-  <button class="active" data-tool="select"><b>↖</b><span>SELECT</span></button>
-  <button data-tool="draw"><b>✎</b><span>DRAW</span></button>
-  <button data-tool="stripe"><b>／</b><span>STRIPE</span></button>
-  <button data-tool="block"><b>■</b><span>BLOCK</span></button>
-  <button data-tool="circle"><b>●</b><span>CIRCLE</span></button>
-  <button data-tool="text"><b>T</b><span>TEXT</span></button>
-  <button data-tool="ax"><b>AX</b><span>AX LOGO</span></button>
-</nav>
-
-<section class="panel">
-  <div class="panel-head"><span>SELECTED OBJECT</span><b id="selectedType">NONE</b></div>
-  <div class="color-box">
-    <span>COLOR</span>
-    <input id="colorInput" type="color" value="#76ff00">
-    <div class="swatches">
-      <button data-color="#76ff00" style="--c:#76ff00"></button>
-      <button data-color="#f4f5f5" style="--c:#f4f5f5"></button>
-      <button data-color="#11161a" style="--c:#11161a"></button>
-      <button data-color="#e51e2a" style="--c:#e51e2a"></button>
-      <button data-color="#00a8ff" style="--c:#00a8ff"></button>
-      <button data-color="#c7a566" style="--c:#c7a566"></button>
+    <div class="control-block">
+      <span>VIEW ANGLE</span>
+      <div class="seg angle" id="viewSeg">
+        <button type="button" data-view="sideA">SIDE A</button>
+        <button type="button" data-view="sideB">SIDE B</button>
+        <button class="active" type="button" data-view="frontA">FRONT A</button>
+        <button type="button" data-view="frontB">FRONT B</button>
+      </div>
     </div>
-  </div>
-  <label id="textRow" class="text-row" hidden><span>TEXT</span><input id="textInput" type="text" maxlength="24" value="AXVELL"></label>
-  <div class="slider-row"><div><span>SIZE</span><b id="sizeValue">100%</b></div><input id="sizeInput" type="range" min="20" max="300" value="100"></div>
-  <div class="slider-row"><div><span>ROTATE</span><b id="rotateValue">0°</b></div><input id="rotateInput" type="range" min="-180" max="180" value="0"></div>
-  <div class="slider-row"><div><span>OPACITY</span><b id="opacityValue">100%</b></div><input id="opacityInput" type="range" min="10" max="100" value="100"></div>
-  <div class="actions"><button id="duplicateBtn">DUPLICATE</button><button id="imageBtn">ADD IMAGE</button><button id="deleteBtn" class="danger">DELETE</button></div>
-  <input id="imageInput" type="file" accept="image/*" hidden>
-  <p class="hint">車体上に直接配置できます。SELECTでドラッグ移動、DRAWで手描き。150%/200%で細かく調整できます。</p>
-</section>
+  </section>
 
-<div class="toast" id="toast" hidden></div>
-<script src="app.js"></script>
+  <section class="stage-shell">
+    <div class="stage-scroll" id="stageScroll">
+      <div class="stage" id="stage">
+        <div class="image-missing" id="imageMissing" hidden>
+          <b>BASE IMAGE NOT FOUND</b>
+          <span id="missingFile"></span>
+        </div>
+        <img id="bikeImg" class="bike-img" src="assets/front-a-black.webp" alt="ZX-4R base vehicle" draggable="false">
+        <svg id="designSvg" viewBox="0 0 1448 1086" aria-label="車体デザインキャンバス">
+          <g id="objectsLayer"></g>
+          <g id="selectionLayer"></g>
+        </svg>
+      </div>
+    </div>
+    <div class="stage-meta">
+      <div class="stage-status">
+        <span id="modeText">SELECT MODE</span>
+        <span class="status-dot" id="imageStatus">IMAGE: LOADING</span>
+        <span class="view-label" id="viewLabel">BLACK / FRONT A</span>
+      </div>
+      <div class="zoom" id="zoomSeg">
+        <button class="active" type="button" data-zoom="1">100%</button>
+        <button type="button" data-zoom="1.5">150%</button>
+        <button type="button" data-zoom="2">200%</button>
+      </div>
+    </div>
+  </section>
+
+  <nav class="toolstrip" id="toolstrip" aria-label="デザインツール">
+    <button class="active" type="button" data-tool="select"><b>↖</b><span>SELECT</span></button>
+    <button type="button" data-tool="draw"><b>✎</b><span>DRAW</span></button>
+    <button type="button" data-tool="stripe"><b>／</b><span>STRIPE</span></button>
+    <button type="button" data-tool="block"><b>■</b><span>BLOCK</span></button>
+    <button type="button" data-tool="circle"><b>●</b><span>CIRCLE</span></button>
+    <button type="button" data-tool="text"><b>T</b><span>TEXT</span></button>
+    <button type="button" data-tool="ax"><b>AX</b><span>AX LOGO</span></button>
+  </nav>
+
+  <section class="panel">
+    <div class="panel-head"><span>SELECTED OBJECT</span><b id="selectedType">NONE</b></div>
+    <div class="color-box">
+      <span>COLOR</span>
+      <input id="colorInput" type="color" value="#76ff00">
+      <div class="swatches">
+        <button type="button" data-color="#76ff00" style="--c:#76ff00"></button>
+        <button type="button" data-color="#f4f5f5" style="--c:#f4f5f5"></button>
+        <button type="button" data-color="#11161a" style="--c:#11161a"></button>
+        <button type="button" data-color="#e51e2a" style="--c:#e51e2a"></button>
+        <button type="button" data-color="#00a8ff" style="--c:#00a8ff"></button>
+        <button type="button" data-color="#c7a566" style="--c:#c7a566"></button>
+      </div>
+    </div>
+    <label id="textRow" class="text-row" hidden><span>TEXT</span><input id="textInput" type="text" maxlength="24" value="AXVELL"></label>
+    <div class="slider-row"><div><span>SIZE</span><b id="sizeValue">100%</b></div><input id="sizeInput" type="range" min="20" max="300" value="100"></div>
+    <div class="slider-row"><div><span>ROTATE</span><b id="rotateValue">0°</b></div><input id="rotateInput" type="range" min="-180" max="180" value="0"></div>
+    <div class="slider-row"><div><span>OPACITY</span><b id="opacityValue">100%</b></div><input id="opacityInput" type="range" min="10" max="100" value="100"></div>
+    <div class="actions four">
+      <button id="duplicateBtn" type="button">DUPLICATE</button>
+      <button id="mirrorPairBtn" type="button">MIRROR PAIR</button>
+      <button id="imageBtn" type="button">ADD IMAGE</button>
+      <button id="deleteBtn" class="danger" type="button">DELETE</button>
+    </div>
+    <input id="imageInput" type="file" accept="image/*" hidden>
+    <p class="hint">SIDE A/B・FRONT A/Bごとにデザインを保持します。MIRROR PAIRは現在の面を反対側へ左右反転コピーします。</p>
+  </section>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="app.js"></script>
 </body>
 </html>
