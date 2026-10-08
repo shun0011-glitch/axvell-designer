@@ -1,3 +1,4 @@
+[hidden]{display:none!important}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--accent:#76ff00;--bg:#080a0b;--panel:#101416;--line:#2c3437;--muted:#727d81}
 html,body{margin:0;background:var(--bg);color:#f5f6f6;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;overscroll-behavior:none}
