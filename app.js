@@ -1,6 +1,6 @@
 const NS="http://www.w3.org/2000/svg";
 const VIEW_W=1448,VIEW_H=1086;
-const ASSET_VERSION="20261009-1";
+const ASSET_VERSION="20261009-2";
 const IMAGE_MAP={black:{sideA:"assets/side-a-black.webp",sideB:"assets/side-b-black.webp",frontA:"assets/front-a-black.webp",frontB:"assets/front-b-black.webp"},white:{sideA:"assets/side-a-white.webp",sideB:"assets/side-b-white.webp",frontA:"assets/front-a-white.webp",frontB:"assets/front-b-white.webp"},green:{sideA:"assets/side-a-green.webp",sideB:"assets/side-b-green.webp",frontA:"assets/front-a-green.webp",frontB:"assets/front-b-green.webp"}};
 const PAIR_MAP={sideA:"sideB",sideB:"sideA",frontA:"frontB",frontB:"frontA"};
 const VIEW_LABELS={sideA:"SIDE A",sideB:"SIDE B",frontA:"FRONT A",frontB:"FRONT B"};
@@ -56,8 +56,8 @@ function loadBikeImage(){
   const src=localSrc||`${webSrc}?v=${ASSET_VERSION}`;
   imageMissing.hidden=true;
   setImageStatus(localSrc?"IMAGE: LOCAL":"IMAGE: LOADING",localSrc?"ok":"");
-  bikeImg.onload=()=>{imageMissing.hidden=true;setImageStatus(localSrc?"IMAGE: LOCAL":"IMAGE: OK","ok");updateBaseSlotLabel()};
-  bikeImg.onerror=()=>{imageMissing.hidden=false;missingFile.textContent=webSrc;setImageStatus("IMAGE: MISSING","warn");updateBaseSlotLabel()};
+  bikeImg.onload=()=>{imageMissing.hidden=true;imageMissing.style.display="none";bikeImg.style.display="block";setImageStatus(localSrc?"IMAGE: LOCAL":"IMAGE: OK","ok");updateBaseSlotLabel()};
+  bikeImg.onerror=()=>{imageMissing.hidden=false;imageMissing.style.display="flex";bikeImg.style.display="none";missingFile.textContent=webSrc;setImageStatus("IMAGE: MISSING","warn");updateBaseSlotLabel()};
   bikeImg.src=src;
 }
 function svgPoint(evt){const pt=svg.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;const m=svg.getScreenCTM();if(!m)return{x:0,y:0};return pt.matrixTransform(m.inverse())}
