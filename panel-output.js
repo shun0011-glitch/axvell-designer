@@ -110,8 +110,10 @@
       img.src = trackUrl(new Blob([new XMLSerializer().serializeToString(panelExportSvg(p, session.nodes, session.view))], { type: "image/svg+xml" }));
       for (const format of ["png", "svg"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = `${format.toUpperCase()}を作成`; button.addEventListener("click", () => saveOne(entry, format)); actions.appendChild(button); }
       checkbox.addEventListener("change", count);
-      width.addEventListener("input", () => { update(entry); entry.status.replaceChildren(); q("#outputResult").replaceChildren(); });
-      width.addEventListener("change", () => { try { dimensions(entry); if (width.value) sizes[key(p)] = Number(width.value); else delete sizes[key(p)]; localStorage.setItem(settingsKey, JSON.stringify(sizes)); } catch {} });
+      width.addEventListener("input", () => {
+        update(entry); entry.status.replaceChildren(); q("#outputResult").replaceChildren();
+        try { dimensions(entry); if (width.value) sizes[key(p)] = Number(width.value); else delete sizes[key(p)]; localStorage.setItem(settingsKey, JSON.stringify(sizes)); } catch {}
+      });
       update(entry); q("#outputGrid").appendChild(card);
     }
     count(); dialog.showModal(); q("#outputClose").focus();
