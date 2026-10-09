@@ -1,0 +1,6 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const code=fs.readFileSync('editor.js','utf8');const context={bbox:o=>{const xs=o.points.map(p=>p.x),ys=o.points.map(p=>p.y);return{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)}}};vm.createContext(context);vm.runInContext(code.slice(code.indexOf('function transformedPoint'),code.indexOf('const chooseButton')),context);
+const p=context.transformedPoint({x:100,y:100,rot:90},20,0);assert.ok(Math.abs(p.x-100)<1e-6);assert.ok(Math.abs(p.y-120)<1e-6);
+const rect={w:100,h:50};context.applyObjectScale(rect,{type:'rect',w:100,h:50},2);assert.equal(rect.w,200);assert.equal(rect.h,100);
+const draw={};context.applyObjectScale(draw,{type:'draw',points:[{x:0,y:0},{x:100,y:100}],width:4},2);assert.equal(draw.points[0].x,-50);assert.equal(draw.points[1].x,150);assert.equal(draw.width,8);
+const panel={points:[{x:0,y:0},{x:100,y:0},{x:100,y:100},{x:0,y:100}]};assert.equal(context.pointInPanel({x:50,y:50},panel),true);assert.equal(context.pointInPanel({x:150,y:50},panel),false);
+console.log('PASS: rotated handle coordinates, proportional resize, centered freehand scaling and cowl hit detection');
