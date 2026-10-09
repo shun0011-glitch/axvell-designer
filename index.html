@@ -7,6 +7,13 @@
   <title>AXVELL Direct Designer V6</title>
   <link rel="icon" href="assets/ax-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="app.css?v=20261009-4">
+  <link rel="stylesheet" href="fullscreen.css?v=20261009-2">
+  <style>
+    html body{max-width:none!important;width:100%;margin:0!important;border:0!important}
+    body .intro{display:none!important}
+    body .editor-workspace{max-width:none!important;width:100%!important;margin:0!important}
+    @media(min-width:1101px){body .editor-workspace{grid-template-columns:190px minmax(0,1fr) 280px!important}body .editor-workspace.canvas-focus{grid-template-columns:minmax(0,1fr)!important}}
+  </style>
 </head>
 <body>
   <header class="topbar">
