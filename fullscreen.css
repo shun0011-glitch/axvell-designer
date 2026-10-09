@@ -1,0 +1,21 @@
+html,body{width:100%;max-width:none;margin:0;border:0;height:100%;overflow:hidden}
+.intro{display:none}
+.topbar{height:56px;position:relative;padding:0 16px}
+.brand b{font-size:15px}.brand small{font-size:8px}
+.top-actions button{font-size:11px;height:36px;padding:0 12px}
+.editor-workspace{width:100%;max-width:none;height:calc(100dvh - 56px);margin:0;padding:12px;gap:12px;display:grid;grid-template-columns:190px minmax(0,1fr) 280px;overflow:hidden}
+.editor-left,.editor-right{min-height:0;overflow:auto;overscroll-behavior:contain}
+.editor-center{min-width:0;min-height:0;height:100%;display:flex}
+.editor-center .stage-shell{width:100%;height:100%;margin:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #2c3437}
+.editor-center .stage-scroll{flex:1;min-height:0;position:relative}
+.editor-center .stage{margin:0 auto;flex-shrink:0}
+.stage-meta{flex-shrink:0;min-height:48px;font-size:10px}.stage-status{display:flex;flex-wrap:wrap;gap:8px}.zoom button{font-size:11px}
+.editor-left .vehicle-controls,.editor-left .toolstrip{position:static}
+.control-block>span,.base-copy b,.base-copy span,.panel-head span,.color-box>span,.text-row span,.slider-row span{font-size:10px}
+.seg button,.seg.angle button,.base-actions button,.layer-actions button,.actions button{font-size:10px;letter-spacing:0}
+.toolstrip span{font-size:9px}.panel-head b,.slider-row b{font-size:11px}.hint{font-size:11px}.toast{font-size:12px}
+.editor-right .panel{padding:12px}.color-box{grid-template-columns:auto auto;gap:8px}.swatches{grid-column:1/-1;flex-wrap:wrap;overflow:visible}
+.editor-workspace.canvas-focus{grid-template-columns:minmax(0,1fr)}
+.editor-workspace.canvas-focus .editor-left,.editor-workspace.canvas-focus .editor-right{display:none}
+@media(max-width:1100px){.editor-workspace{grid-template-columns:150px minmax(0,1fr) 240px}.editor-right{display:block;grid-column:auto}.editor-left .toolstrip{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:800px){html,body{overflow:auto;height:auto}.topbar{position:sticky;top:0;flex-wrap:wrap;height:auto;min-height:56px;gap:8px;padding:8px}.top-actions{flex-wrap:wrap}.top-actions button{font-size:10px;padding:0 8px}.editor-workspace{height:auto;display:flex;flex-direction:column;overflow:visible;padding:8px}.editor-center{order:0;height:65dvh;min-height:300px}.editor-left{order:1;overflow:visible}.editor-right{order:2;overflow:visible}.editor-left .toolstrip{grid-template-columns:repeat(4,1fr)}.editor-workspace.canvas-focus{height:calc(100dvh - 100px);min-height:300px}.canvas-focus .editor-center{height:100%;min-height:0}}
