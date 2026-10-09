@@ -10,6 +10,10 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 const stage=$("#stage"),stageScroll=$("#stageScroll"),bikeImg=$("#bikeImg"),svg=$("#designSvg"),objectsLayer=$("#objectsLayer"),selectionLayer=$("#selectionLayer"),imageMissing=$("#imageMissing"),missingFile=$("#missingFile"),imageStatus=$("#imageStatus");
 let state={body:"black",view:"frontA",tool:"select",zoom:1,maskEnabled:true,selected:null,objects:{sideA:[],sideB:[],frontA:[],frontB:[]}};
 let history=[],future=[],drag=null,drawing=null,seq=1;
+let controlEdit=null;
+function beginControlEdit(id){const o=selectedObj();if(!o)return;if(controlEdit?.id===id&&controlEdit.objectId===o.id)return;if(controlEdit)finishControlEdit();snapshot();controlEdit={id,objectId:o.id,base:clone(o)}}
+function finishControlEdit(){controlEdit=null;const input=$("#sizeInput");if(input){input.value=100;$("#sizeValue").textContent="100%"}}
+
 let importedBases={};
 try{importedBases=JSON.parse(localStorage.getItem("axvellBaseImagesV6")||"{}")}catch{importedBases={}}
 function baseKey(body=state.body,view=state.view){return body+":"+view}
@@ -42,7 +46,7 @@ function setCurrentObjects(n){state.objects[state.view]=n}
 function selectedObj(){return currentObjects().find(o=>o.id===state.selected)||null}
 function serializableState(){return{body:state.body,view:state.view,zoom:state.zoom,maskEnabled:state.maskEnabled,objects:clone(state.objects)}}
 function snapshot(){history.push(JSON.stringify(serializableState()));if(history.length>60)history.shift();future=[];updateHistoryButtons()}
-function restore(raw){const p=JSON.parse(raw);state.body=p.body||"black";state.view=p.view||"frontA";state.zoom=p.zoom||1;state.maskEnabled=p.maskEnabled!==false;state.objects=p.objects||{sideA:[],sideB:[],frontA:[],frontB:[]};for(const k of Object.keys(PAIR_MAP))if(!state.objects[k])state.objects[k]=[];state.selected=null;syncBodyButtons();syncViewButtons();syncZoomButtons();loadBikeImage();render()}
+function restore(raw){finishControlEdit();const p=JSON.parse(raw);state.body=p.body||"black";state.view=p.view||"frontA";state.zoom=p.zoom||1;state.maskEnabled=p.maskEnabled!==false;state.objects=p.objects||{sideA:[],sideB:[],frontA:[],frontB:[]};for(const k of Object.keys(PAIR_MAP))if(!state.objects[k])state.objects[k]=[];state.selected=null;syncBodyButtons();syncViewButtons();syncZoomButtons();loadBikeImage();render()}
 function updateHistoryButtons(){$("#undoBtn").disabled=history.length===0;$("#redoBtn").disabled=future.length===0}
 function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.hidden=true,1800)}
 function svgEl(tag,attrs={}){const e=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);return e}
@@ -56,7 +60,7 @@ function syncLayerControls(){
   const lb=$("#lockBtn");
   if(lb){lb.classList.toggle("active",Boolean(o?.locked));lb.textContent=o?.locked?"UNLOCK":"LOCK";lb.setAttribute("aria-pressed",o?.locked?"true":"false")}
 }
-function updateControls(){const o=selectedObj();syncLayerControls();if(!o)return;$("#colorInput").value=o.color||"#76ff00";$("#rotateInput").value=o.rot||0;$("#rotateValue").textContent=(o.rot||0)+"°";$("#opacityInput").value=Math.round((o.opacity??1)*100);$("#opacityValue").textContent=$("#opacityInput").value+"%";$("#sizeInput").value=100;$("#sizeValue").textContent="100%";if(o.type==="text")$("#textInput").value=o.text||""}
+function updateControls(){const o=selectedObj();syncLayerControls();if(!o)return;$("#colorInput").value=o.color||"#76ff00";$("#rotateInput").value=o.rot||0;$("#rotateValue").textContent=(o.rot||0)+"°";$("#opacityInput").value=Math.round((o.opacity??1)*100);$("#opacityValue").textContent=$("#opacityInput").value+"%";if(controlEdit?.id!=="sizeInput"){$("#sizeInput").value=100;$("#sizeValue").textContent="100%"};if(o.type==="text")$("#textInput").value=o.text||""}
 function setImageStatus(text,type=""){imageStatus.textContent=text;imageStatus.className="status-dot "+type}
 function syncMaskButton(){
   const b=$("#maskBtn");if(!b)return;
@@ -87,27 +91,26 @@ function loadBikeImage(){
   bikeImg.src=src;
 }
 function svgPoint(evt){const pt=svg.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;const m=svg.getScreenCTM();if(!m)return{x:0,y:0};return pt.matrixTransform(m.inverse())}
-function setTool(t){state.tool=t;$$("[data-tool]").forEach(b=>b.classList.toggle("active",b.dataset.tool===t));render()}
+function setTool(t){finishControlEdit();state.tool=t;$$("[data-tool]").forEach(b=>b.classList.toggle("active",b.dataset.tool===t));render()}
 function addObject(type,p){snapshot();let o={id:uid(),type,x:p.x,y:p.y,color:$("#colorInput").value,opacity:1,rot:0};if(type==="stripe")Object.assign(o,{w:430,h:65,rot:-15});if(type==="rect")Object.assign(o,{w:300,h:180});if(type==="circle")Object.assign(o,{w:200,h:200});if(type==="text")Object.assign(o,{size:95,text:"AXVELL"});if(type==="ax")Object.assign(o,{size:240});currentObjects().push(o);state.selected=o.id;setTool("select");render()}
-function objectPointerDown(e){if(state.tool!=="select")return;e.preventDefault();e.stopPropagation();state.selected=e.currentTarget.dataset.id;const o=selectedObj();if(!o)return;if(o.locked){render();toast("LOCKED");return}snapshot();const p=svgPoint(e);drag={id:o.id,start:p,origX:o.x,origY:o.y,points:o.type==="draw"?clone(o.points):null};e.currentTarget.setPointerCapture?.(e.pointerId);render()}
+function objectPointerDown(e){if(state.tool!=="select")return;e.preventDefault();e.stopPropagation();finishControlEdit();state.selected=e.currentTarget.dataset.id;const o=selectedObj();if(!o)return;if(o.locked){render();toast("LOCKED");return}snapshot();const p=svgPoint(e);drag={id:o.id,start:p,origX:o.x,origY:o.y,points:o.type==="draw"?clone(o.points):null};e.currentTarget.setPointerCapture?.(e.pointerId);render()}
 svg.addEventListener("pointerdown",e=>{e.preventDefault();const p=svgPoint(e);if(state.tool==="draw"){snapshot();const o={id:uid(),type:"draw",color:$("#colorInput").value,opacity:1,width:18,points:[p]};currentObjects().push(o);state.selected=o.id;drawing=o;render();return}if(state.tool==="stripe")return addObject("stripe",p);if(state.tool==="block")return addObject("rect",p);if(state.tool==="circle")return addObject("circle",p);if(state.tool==="text")return addObject("text",p);if(state.tool==="ax")return addObject("ax",p);if(e.target===svg){state.selected=null;render()}});
 svg.addEventListener("pointermove",e=>{e.preventDefault();const p=svgPoint(e);if(drawing){drawing.points.push(p);render();return}if(!drag)return;const o=currentObjects().find(x=>x.id===drag.id);if(!o)return;const dx=p.x-drag.start.x,dy=p.y-drag.start.y;if(o.type==="draw")o.points=drag.points.map(q=>({x:q.x+dx,y:q.y+dy}));else{o.x=drag.origX+dx;o.y=drag.origY+dy}render()});
 function endPointer(){drag=null;drawing=null}svg.addEventListener("pointerup",endPointer);svg.addEventListener("pointercancel",endPointer);
 $$("[data-tool]").forEach(b=>b.addEventListener("click",()=>setTool(b.dataset.tool)));
 $$("[data-body]").forEach(b=>b.addEventListener("click",()=>{state.body=b.dataset.body;syncBodyButtons();loadBikeImage();render()}));
-$$("[data-view]").forEach(b=>b.addEventListener("click",()=>{state.view=b.dataset.view;state.selected=null;syncViewButtons();loadBikeImage();render()}));
+$$("[data-view]").forEach(b=>b.addEventListener("click",()=>{finishControlEdit();state.view=b.dataset.view;state.selected=null;syncViewButtons();loadBikeImage();render()}));
 $$("[data-zoom]").forEach(b=>b.addEventListener("click",()=>{state.zoom=Number(b.dataset.zoom);syncZoomButtons()}));
 function syncBodyButtons(){$$("[data-body]").forEach(b=>b.classList.toggle("active",b.dataset.body===state.body))}
 function syncViewButtons(){$$("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view))}
 function syncZoomButtons(){stage.style.width=(state.zoom*100)+"%";$$("[data-zoom]").forEach(b=>b.classList.toggle("active",Number(b.dataset.zoom)===state.zoom));if(state.zoom===1)stageScroll.scrollLeft=0}
-$("#colorInput").addEventListener("input",e=>{const o=selectedObj();if(o){o.color=e.target.value;render()}});
-$$("[data-color]").forEach(b=>b.addEventListener("click",()=>{const c=b.dataset.color;$("#colorInput").value=c;const o=selectedObj();if(o){o.color=c;render()}}));
-$("#textInput").addEventListener("input",e=>{const o=selectedObj();if(o?.type==="text"){o.text=e.target.value;render()}});
-$("#rotateInput").addEventListener("input",e=>{const o=selectedObj();if(o&&o.type!=="draw"){o.rot=Number(e.target.value);$("#rotateValue").textContent=e.target.value+"°";render()}});
-$("#opacityInput").addEventListener("input",e=>{const o=selectedObj();if(o){o.opacity=Number(e.target.value)/100;$("#opacityValue").textContent=e.target.value+"%";render()}});
-$("#sizeInput").addEventListener("pointerdown",()=>{const o=selectedObj();if(o)o._scaleBase=clone(o)});
-$("#sizeInput").addEventListener("input",e=>{const o=selectedObj();if(!o)return;const base=o._scaleBase||clone(o),f=Number(e.target.value)/100;$("#sizeValue").textContent=e.target.value+"%";if(["rect","stripe","circle","image"].includes(o.type)){o.w=base.w*f;o.h=base.h*f}else if(o.type==="text"||o.type==="ax")o.size=base.size*f;else if(o.type==="draw")o.width=Math.max(2,base.width*f);render()});
-$("#sizeInput").addEventListener("change",()=>{const o=selectedObj();if(o)delete o._scaleBase;$("#sizeInput").value=100;$("#sizeValue").textContent="100%"});
+$("#colorInput").addEventListener("input",e=>{const o=selectedObj();if(o){beginControlEdit("colorInput");o.color=e.target.value;render()}});
+$$("[data-color]").forEach(b=>b.addEventListener("click",()=>{const c=b.dataset.color;$("#colorInput").value=c;const o=selectedObj();if(o){snapshot();o.color=c;render()}}));
+$("#textInput").addEventListener("input",e=>{const o=selectedObj();if(o?.type==="text"){beginControlEdit("textInput");o.text=e.target.value;render()}});
+$("#rotateInput").addEventListener("input",e=>{const o=selectedObj();if(o&&o.type!=="draw"){beginControlEdit("rotateInput");o.rot=Number(e.target.value);$("#rotateValue").textContent=e.target.value+"°";render()}});
+$("#opacityInput").addEventListener("input",e=>{const o=selectedObj();if(o){beginControlEdit("opacityInput");o.opacity=Number(e.target.value)/100;$("#opacityValue").textContent=e.target.value+"%";render()}});
+$("#sizeInput").addEventListener("input",e=>{const o=selectedObj();if(!o)return;beginControlEdit("sizeInput");const base=controlEdit.base,f=Number(e.target.value)/100;if(["rect","stripe","circle","image"].includes(o.type)){o.w=base.w*f;o.h=base.h*f}else if(o.type==="text"||o.type==="ax")o.size=base.size*f;else if(o.type==="draw")o.width=Math.max(2,base.width*f);render();$("#sizeValue").textContent=e.target.value+"%"});
+["colorInput","textInput","rotateInput","opacityInput","sizeInput"].forEach(id=>{const input=$("#"+id);input.addEventListener("change",finishControlEdit);input.addEventListener("blur",finishControlEdit)});
 $("#sendBackBtn").addEventListener("click",()=>{
   const o=selectedObj();if(!o)return;snapshot();
   const arr=currentObjects(),i=arr.findIndex(x=>x.id===o.id);if(i>0){arr.splice(i,1);arr.unshift(o)}render()
@@ -158,6 +161,6 @@ $("#clearBasesBtn").addEventListener("click",()=>{
 });
 $("#undoBtn").addEventListener("click",()=>{if(!history.length)return;future.push(JSON.stringify(serializableState()));restore(history.pop());updateHistoryButtons()});
 $("#redoBtn").addEventListener("click",()=>{if(!future.length)return;history.push(JSON.stringify(serializableState()));restore(future.pop());updateHistoryButtons()});
-$("#saveBtn").addEventListener("click",()=>{localStorage.setItem("axvellDirectDesignerV6",JSON.stringify(serializableState()));toast("保存しました")});
+$("#saveBtn").addEventListener("click",()=>{try{localStorage.setItem("axvellDirectDesignerV6",JSON.stringify(serializableState()));toast("保存しました")}catch(err){console.warn(err);toast("保存容量を超えました。画像を減らして再保存してください")}});
 $("#exportBtn").addEventListener("click",async()=>{if(!bikeImg.complete||!bikeImg.naturalWidth){toast("車体画像を読み込めません");return}state.selected=null;render();try{const canvas=document.createElement("canvas");canvas.width=VIEW_W;canvas.height=VIEW_H;const ctx=canvas.getContext("2d");ctx.drawImage(bikeImg,0,0,VIEW_W,VIEW_H);const exportSvg=svg.cloneNode(true);exportSvg.querySelector("#selectionLayer")?.remove();const blob=new Blob([new XMLSerializer().serializeToString(exportSvg)],{type:"image/svg+xml"});const url=URL.createObjectURL(blob);const overlay=new Image();overlay.src=url;await overlay.decode();ctx.drawImage(overlay,0,0,VIEW_W,VIEW_H);URL.revokeObjectURL(url);const a=document.createElement("a");a.href=canvas.toDataURL("image/png",1);a.download=`AXVELL_ZX4R_${state.body}_${state.view}.png`;a.click();toast("PNGを書き出しました")}catch(err){console.error(err);toast("PNG書き出しに失敗しました")}});
 const saved=localStorage.getItem("axvellDirectDesignerV6");if(saved){try{const p=JSON.parse(saved);state.body=p.body||state.body;state.view=p.view||state.view;state.zoom=p.zoom||1;state.maskEnabled=p.maskEnabled!==false;state.objects=p.objects||state.objects;for(const k of Object.keys(PAIR_MAP))if(!state.objects[k])state.objects[k]=[]}catch(e){console.warn(e)}}syncBodyButtons();syncViewButtons();syncZoomButtons();updateHistoryButtons();loadBikeImage();render();
