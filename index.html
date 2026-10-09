@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#080a0b">
   <title>AXVELL Direct Designer V6</title>
   <link rel="icon" href="assets/ax-symbol.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="app.css?v=20261009-3">
+  <link rel="stylesheet" href="app.css?v=20261009-4">
 </head>
 <body>
   <header class="topbar">
@@ -118,6 +118,11 @@
     <div class="slider-row"><div><span>SIZE</span><b id="sizeValue">100%</b></div><input id="sizeInput" type="range" min="20" max="300" value="100"></div>
     <div class="slider-row"><div><span>ROTATE</span><b id="rotateValue">0°</b></div><input id="rotateInput" type="range" min="-180" max="180" value="0"></div>
     <div class="slider-row"><div><span>OPACITY</span><b id="opacityValue">100%</b></div><input id="opacityInput" type="range" min="10" max="100" value="100"></div>
+    <div class="layer-actions">
+      <button id="sendBackBtn" type="button">TO BACK</button>
+      <button id="bringFrontBtn" type="button">TO FRONT</button>
+      <button id="lockBtn" type="button" aria-pressed="false">LOCK</button>
+    </div>
     <div class="actions four">
       <button id="duplicateBtn" type="button">DUPLICATE</button>
       <button id="mirrorPairBtn" type="button">MIRROR PAIR</button>
@@ -129,6 +134,6 @@
   </section>
 
   <div class="toast" id="toast" hidden></div>
-  <script src="app.js?v=20261009-3"></script>
+  <script src="app.js?v=20261009-4"></script>
 </body>
 </html>
