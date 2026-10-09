@@ -95,7 +95,7 @@ function syncBodyColorLayer(){
  const filter=svgEl("filter",{id:"bodyPaintFilter",x:0,y:0,width:1,height:1,"color-interpolation-filters":"sRGB"});
  filter.appendChild(svgEl("feColorMatrix",{type:"saturate",values:0}));
  const transfer=svgEl("feComponentTransfer");
- for(const channel of ["R","G","B"])transfer.appendChild(svgEl("feFunc"+channel,{type:"gamma",amplitude:.82,exponent:.28,offset:.18}));
+ for(const channel of ["R","G","B"])transfer.appendChild(svgEl("feFunc"+channel,{type:"gamma",amplitude:.6,exponent:.65,offset:.4}));
  filter.appendChild(transfer);
  if(state.body==="green")filter.appendChild(svgEl("feColorMatrix",{type:"matrix",values:"0.46 0 0 0 0 0 1 0 0 0 0 0 0.035 0 0 0 0 0 1 0"}));
  defs.appendChild(filter);layer.appendChild(defs);
