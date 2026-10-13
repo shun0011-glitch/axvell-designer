@@ -25,6 +25,6 @@ function cowlRings(path){
 }
 function cowlSignature(value){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16)}
 function isPreviousCowlPreset(panel,body,view){
- const previous=COWL_PREVIOUS_SIGNATURES[body]?.[view]?.[panel.id];
- return Boolean(previous&&cowlSignature(JSON.stringify(panel.points))===previous.points&&(!panel.surfacePath||cowlSignature(panel.surfacePath)===previous.path));
+ const versions=[COWL_PREVIOUS_SIGNATURES,COWL_PREVIOUS_SIGNATURES_V2];
+ return versions.some(version=>{const previous=version[body]?.[view]?.[panel.id];return Boolean(previous&&cowlSignature(JSON.stringify(panel.points))===previous.points&&(!panel.surfacePath||cowlSignature(panel.surfacePath)===previous.path))});
 }
