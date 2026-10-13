@@ -46,8 +46,8 @@ function loadBodyPanels(saved={}){
      const replacement=fresh[view].find(p=>p.id===existing[i].id);
      if(old&&replacement&&samePreset(existing[i],old))existing[i]=replacement;
     }
-    // Add the new fender to unchanged stock presets, preserving user-created partitions.
-    if(existing.every(p=>legacy[view].some(old=>old.id===p.id))&&!existing.some(p=>p.id==="fender"))existing.push(fresh[view].find(p=>p.id==="fender"));
+    // Add newly available stock pieces while preserving custom partitions.
+    if(existing.every(p=>legacy[view].some(old=>old.id===p.id)))for(const panel of fresh[view])if(!existing.some(p=>p.id===panel.id))existing.push(panel);
    }
   }
  }
