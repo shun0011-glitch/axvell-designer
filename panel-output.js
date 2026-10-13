@@ -34,7 +34,7 @@
     } catch (error) { entry.card.setAttribute("aria-invalid", "true"); entry.info.classList.add("output-error"); entry.info.textContent = error.message; }
   }
   function rootFor(entry, printSize) {
-    const root = panelExportSvg(entry.panel, session.nodes, session.view);
+    const root = panelExportSvg(entry.panel, session.nodes, session.view, session.body);
     if (printSize.widthMm) { root.setAttribute("width", `${printSize.widthMm}mm`); root.setAttribute("height", `${printSize.heightMm}mm`); }
     return root;
   }
@@ -90,7 +90,7 @@
     if (!currentPanels().length || !currentObjects().length) { toast("カウル区分とデザインを設定してください"); return; }
     if (panelDrawing) { toast("輪郭を確定してから出力してください"); return; }
     generation++; release(); setBusy(false);
-    session = { view: state.view, nodes: [...objectsLayer.children].map(n => n.cloneNode(true)), entries: [] };
+    session = { view: state.view, body: state.body, nodes: [...objectsLayer.children].map(n => n.cloneNode(true)), entries: [] };
     q("#outputView").textContent = state.view === "sideA" ? "SIDE A" : state.view === "sideB" ? "SIDE B" : state.view.toUpperCase();
     q("#outputGrid").replaceChildren(); q("#outputResult").replaceChildren();
     for (const p of clone(currentPanels())) {
@@ -107,7 +107,7 @@
       const actions = document.createElement("div"); actions.className = "output-card-actions"; card.appendChild(actions);
       const status = document.createElement("div"); status.className = "output-card-status"; status.setAttribute("aria-live", "polite"); card.appendChild(status);
       const entry = { panel: p, card, checkbox, width, info, status }; session.entries.push(entry);
-      img.src = trackUrl(new Blob([new XMLSerializer().serializeToString(panelExportSvg(p, session.nodes, session.view))], { type: "image/svg+xml" }));
+      img.src = trackUrl(new Blob([new XMLSerializer().serializeToString(panelExportSvg(p, session.nodes, session.view, session.body))], { type: "image/svg+xml" }));
       for (const format of ["png", "svg"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = `${format.toUpperCase()}を作成`; button.addEventListener("click", () => saveOne(entry, format)); actions.appendChild(button); }
       checkbox.addEventListener("change", count);
       width.addEventListener("input", () => {

@@ -74,7 +74,7 @@ function applyFairingMask(){
   if(!defs){defs=svgEl("defs",{id:"fairingMaskDefs"});svg.insertBefore(defs,objectsLayer)}
   defs.replaceChildren();
   const clip=svgEl("clipPath",{id:"fairingClip",clipPathUnits:"userSpaceOnUse"});
-  const path=svgEl("path",{d:FAIRING_MASKS[state.view]||"",fill:"#fff","fill-rule":"evenodd","clip-rule":"evenodd"});
+  const path=svgEl("path",{d:fairingMask(),fill:"#fff","fill-rule":"evenodd","clip-rule":"evenodd"});
   clip.appendChild(path);defs.appendChild(clip);
   if(state.maskEnabled)objectsLayer.setAttribute("clip-path","url(#fairingClip)");
   else objectsLayer.removeAttribute("clip-path");
