@@ -4,11 +4,12 @@ Requires numpy, scipy, opencv-python-headless, shapely and Pillow.
 from pathlib import Path
 import re,json
 import cv2,numpy as np
-from shapely.geometry import Polygon,GeometryCollection
+from shapely.geometry import Polygon,GeometryCollection,LineString
 from shapely.ops import unary_union
-from shapely import make_valid
+from shapely import make_valid,points as geometry_points,distance
 ROOT=Path(__file__).resolve().parent.parent
 paths=json.loads((ROOT/'tools/manual-cowl-paths.json').read_text())
+reference=json.loads((ROOT/'tools/ai-reference-front-a.json').read_text())
 old=json.loads(re.search(r'const COWL_PANEL_PRESETS=(.*);\n',(ROOT/'cowl-presets.js').read_text()).group(1))
 names={'sideA':'side-a','sideB':'side-b','frontA':'front-a','frontB':'front-b'}
 # Use structural feature registration only; surface membership is defined by the paths.
@@ -44,17 +45,30 @@ def polygonal(g):
  return []
 def curve(coords,transform):
  pts=cv2.approxPolyDP(np.array(coords[:-1],np.float32).reshape(-1,1,2),.65,True).reshape(-1,2)
- pts=transform(pts);n=len(pts);tangents=[]
+ n=len(pts);tangents=[]
  for i,p in enumerate(pts):
   a=p-pts[(i-1)%n];b=pts[(i+1)%n]-p;cos=np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b)+1e-9);angle=np.arccos(np.clip(cos,-1,1));t=(pts[(i+1)%n]-pts[(i-1)%n])/6
   if angle>np.deg2rad(48):t*=0
   length=np.linalg.norm(t);limit=min(np.linalg.norm(a),np.linalg.norm(b))*.35
   if length>limit:t*=limit/length
   tangents.append(t)
+ # Round gradual turns while staying within 2.25 px of the supplied contour.
+ # Actual panel corners retain their sharp joins. Work before color alignment.
+ boundary=LineString(coords)
+ for _ in range(10):
+  adjusted=False
+  for i,p in enumerate(pts):
+   j=(i+1)%n;q=pts[j];c1=p+tangents[i];c2=q-tangents[j]
+   t=np.linspace(0,1,25)[:,None];u=1-t
+   samples=u*u*u*p+3*u*u*t*c1+3*u*t*t*c2+t*t*t*q
+   if np.max(distance(geometry_points(samples),boundary))>2.25:
+    tangents[i]*=.65;tangents[j]*=.65;adjusted=True
+  if not adjusted:break
  fmt=lambda p:f'{p[0]:.2f},{p[1]:.2f}'
- d='M'+fmt(pts[0])
+ d='M'+fmt(transform([pts[0]])[0])
  for i,p in enumerate(pts):
-  j=(i+1)%n;d+=' C'+fmt(p+tangents[i])+' '+fmt(pts[j]-tangents[j])+' '+fmt(pts[j])
+  j=(i+1)%n;c1,c2,q=transform([p+tangents[i],pts[j]-tangents[j],pts[j]])
+  d+=' C'+fmt(c1)+' '+fmt(c2)+' '+fmt(q)
  return d+' Z'
 def vector(geometry,transform):
  return ' '.join(curve(poly.exterior.coords,transform)+' '+' '.join(curve(hole.coords,transform) for hole in poly.interiors) for poly in polygonal(geometry) if poly.area>35)
@@ -80,26 +94,35 @@ for view,parts in paths.items():
  geometries={};anchors={};claimed=GeometryCollection()
  # The main painted panel owns its photographic exterior, including the area
  # beside the air channel that older upper-cowl guides overlapped.
- order=['tail','seat','tank','nose','side','upper','middle','under','fender']
+ if view==reference['view']:
+  parts={pid:' '.join([part['exterior'],*part['holes']]) for pid,part in reference['parts'].items()}
+  excluded=GeometryCollection()
+ order=[pid for pid in ['tail','seat','tank','nose','side','upper','middle','under','fender'] if pid in parts]
  for pid in order:
   path=parts[pid]
   parsed,allanchors=rings(path);surface=make_valid(Polygon(parsed[0]))
   for hole in parsed[1:]:surface=surface.difference(make_valid(Polygon(hole)))
   surface=make_valid(surface).difference(excluded).difference(claimed)
   geometries[pid]=surface;anchors[pid]=allanchors;claimed=unary_union([claimed,surface])
+ # These are continuous physical panels, not separate print pieces.
+ for target,retired in [('tail','seat'),('under','middle')]:
+  if retired in geometries:
+   geometries[target]=unary_union([geometries[target],geometries.pop(retired)])
+ output_order=['tail','tank','nose','upper','side','under','fender']
  source=cv2.imread(str(ROOT/'assets'/f'{names[view]}-green.webp'))
  for body in presets:
   if body=='green':transform=lambda points:np.array(points,float)
   else:transform,_=align(source,cv2.imread(str(ROOT/'assets'/f'{names[view]}-{body}.webp')))
   entries=[]
-  for pid in parts:
+  for pid in output_order:
    g=geometries[pid]
-   name=next(p['name'] for p in old['green'][view] if p['id']==pid)
-   mainrings,_=rings(paths[view][pid].split(' Z')[0]+' Z');points=transform(cv2.approxPolyDP(np.array(mainrings[0],np.float32).reshape(-1,1,2),5,True).reshape(-1,2))
+   name=reference['parts'][pid]['name']
+   exterior=max(polygonal(g),key=lambda piece:piece.area).exterior.coords
+   points=transform(cv2.approxPolyDP(np.array(exterior[:-1],np.float32).reshape(-1,1,2),5,True).reshape(-1,2))
    entries.append({'id':pid,'name':name,'points':[{'x':float(x),'y':float(y)} for x,y in points],'surfacePath':vector(g,transform)})
   presets[body][view]=entries
   # The display mask has only real outer edges and openings, so independently
   # fitted partition seams cannot punch tiny gaps into a continuous design.
   masks[body][view]=vector(unary_union(list(geometries.values())),transform)
-(ROOT/'cowl-presets.js').write_text('// Green-reference fairing contours, white-checked openings, aligned for each body.\nconst COWL_PRESET_VERSION=4;\nconst COWL_MASKS='+json.dumps(masks,separators=(',',':'))+';\nconst COWL_PANEL_PRESETS='+json.dumps(presets,separators=(',',':'))+';\nconst COWL_PREVIOUS_SIGNATURES='+(ROOT/'tools/cowl-signatures-v1.json').read_text()+';\nconst COWL_PREVIOUS_SIGNATURES_V2='+json.dumps(sigs,separators=(',',':'))+';\nconst COWL_PREVIOUS_SIGNATURES_V3='+(ROOT/'tools/cowl-signatures-v3.json').read_text()+';\nfunction fairingMask(view=state.view,body=state.body){return COWL_MASKS[body]?.[view]||FAIRING_MASKS[view]||""}\n')
+(ROOT/'cowl-presets.js').write_text('// User Illustrator reference for frontA; seven continuous physical cowls per view.\nconst COWL_PRESET_VERSION=5;\nconst COWL_MASKS='+json.dumps(masks,separators=(',',':'))+';\nconst COWL_PANEL_PRESETS='+json.dumps(presets,separators=(',',':'))+';\nconst COWL_PREVIOUS_SIGNATURES='+(ROOT/'tools/cowl-signatures-v1.json').read_text()+';\nconst COWL_PREVIOUS_SIGNATURES_V2='+json.dumps(sigs,separators=(',',':'))+';\nconst COWL_PREVIOUS_SIGNATURES_V3='+(ROOT/'tools/cowl-signatures-v3.json').read_text()+';\nconst COWL_PREVIOUS_SIGNATURES_V4='+(ROOT/'tools/cowl-signatures-v4.json').read_text()+';\nfunction fairingMask(view=state.view,body=state.body){return COWL_MASKS[body]?.[view]||FAIRING_MASKS[view]||""}\n')
 print('Built',sum(len(parts) for views in presets.values() for parts in views.values()),'manually traced regions')

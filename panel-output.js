@@ -3,6 +3,16 @@
   const settingsKey = "axvellPanelPrintSizesV1";
   let sizes = {};
   try { const raw = JSON.parse(localStorage.getItem(settingsKey) || "{}"); if (raw && typeof raw === "object" && !Array.isArray(raw)) sizes = raw; } catch {}
+  // Old widths described separately cropped pieces. Ask for the whole cowl's
+  // measured width after merging, while retaining other panels' dimensions.
+  const topologyKey = "axvellPanelPrintTopologyV1";
+  try {
+    if (localStorage.getItem(topologyKey) !== "2") {
+      for (const key of Object.keys(sizes)) if (/:(tail|under)$/.test(key)) delete sizes[key];
+      localStorage.setItem(settingsKey, JSON.stringify(sizes));
+      localStorage.setItem(topologyKey, "2");
+    }
+  } catch {}
   const dialog = document.createElement("dialog");
   dialog.className = "panel-output-dialog";
   dialog.innerHTML = `<div class="output-heading"><div><h2 id="outputTitle">カウル別の出力確認</h2><p id="outputView"></p></div><button type="button" id="outputClose" aria-label="出力確認を閉じる">閉じる</button></div>

@@ -18,7 +18,18 @@ const PANEL_SEEDS=[["nose","フロントカウル",[[155,395],[169,383],[190,369
 const SIDE_A_PANEL_SEEDS=[["tail","リアカウル",[[605.1333,444.1855],[520.6643,410.6016],[492.1683,412.6365],[408.7173,384.1415],[358.8503,300.6895],[312.0353,275.2475],[150.2213,223.3445],[167.5223,257.9465],[246.9033,294.5835],[222.4783,309.8495],[392.4343,417.7256],[418.8943,430.9555],[489.1153,445.2036],[534.9123,453.3445]]],["seat","シート下カバー",[[666.2217,453.061],[684.8907,420.909],[806.2387,370.088],[912.0297,349.345],[848.7627,402.2401],[904.7687,439.578],[973.2217,427.132],[896.4717,489.362],[851.8737,560.926],[817.6477,568.186],[845.6507,488.324],[853.9487,458.247],[803.1267,441.652]]],["upper","サイド上部",[[1169.5371,389.4834],[1085.2421,373.9404],[1008.2981,374.7364],[871.0801,400.7814],[850.5291,397.9164],[927.9891,347.8654],[1104.1711,319.3644],[1155.9671,367.0514]]],["tank","タンク",[[950.2217,329.3447],[858.2217,340.3447],[777.2217,350.3447],[664.2217,397.3447],[630.2217,384.3447],[611.2217,366.3447],[628.2217,333.3447],[667.2217,293.3447],[726.2217,247.3447],[754.2217,234.3447],[855.2217,250.3447],[944.2217,289.3447],[966.2217,315.3447]]],["side","サイドカウル",[[1065.1768,571.5693],[1026.5588,579.4583],[991.0798,591.3663],[883.2938,662.8284],[782.1548,708.6544],[733.6288,678.9843],[864.5367,589.7313],[961.7247,445.0163],[1029.3658,408.0003],[1183.1898,395.8433],[1247.8558,416.0193],[1242.9738,427.3363],[1274.0038,449.1823],[1178.5698,473.4724],[1135.5958,467.1613],[1103.3547,488.1903],[1093.1418,540.4213]]],["middle","サイド下部",[[1045.2217,586.3447],[1030.2217,594.3447],[985.2217,662.3447],[980.2217,701.3447],[914.2217,679.3447],[897.2217,676.3447],[848.2217,693.3447],[852.2217,677.3447],[889.2217,660.3447],[914.2217,642.3447],[962.2217,611.3447],[987.2217,597.3447]]],["under","アンダーカウル",[[996.6406,828.4092],[979.9955,704.1512],[900.2536,680.1512],[890.5766,680.9263],[780.2536,716.1512],[795.3506,728.5382],[769.8026,754.8613],[694.3186,751.3773],[669.1576,730.8613],[641.6736,736.6672],[576.6406,793.5703],[647.0926,804.0222],[666.4476,795.8932],[795.7386,802.4733],[850.7046,807.8932],[917.2866,821.8282],[930.4476,829.5703]]]];
 function legacyDefaultPanels(){return {sideB:PANEL_SEEDS.map(([id,name,points])=>({id,name,points:points.map(([x,y])=>({x,y}))})),sideA:SIDE_A_PANEL_SEEDS.map(([id,name,points])=>({id,name,points:points.map(([x,y])=>({x,y}))})),frontA:FRONT_A_PANEL_SEEDS.map(([id,name,points])=>({id,name,points:points.map(([x,y])=>({x,y}))})),frontB:FRONT_B_PANEL_SEEDS.map(([id,name,points])=>({id,name,points:points.map(([x,y])=>({x,y}))}))}}
 function defaultPanels(body=state.body){return clone(COWL_PANEL_PRESETS[body]||COWL_PANEL_PRESETS.black)}
-function validPanels(raw,body=state.body){const out=defaultPanels(body);for(const view of Object.keys(PAIR_MAP)){if(Array.isArray(raw?.[view]))out[view]=raw[view].filter(p=>typeof p.id==="string"&&typeof p.name==="string"&&Array.isArray(p.points)&&p.points.length>=3&&p.points.every(q=>Number.isFinite(q.x)&&Number.isFinite(q.y)&&q.x>=0&&q.x<=VIEW_W&&q.y>=0&&q.y<=VIEW_H)).map(p=>({id:p.id,name:p.name,points:p.points.map(q=>({x:q.x,y:q.y})),...(typeof p.surfacePath==="string"&&/^[MLCQZ0-9., eE+\-]+$/.test(p.surfacePath)?{surfacePath:p.surfacePath}:{})}))}return out}
+function validContour(p){return Array.isArray(p?.points)&&p.points.length>=3&&p.points.every(q=>Number.isFinite(q.x)&&Number.isFinite(q.y)&&q.x>=0&&q.x<=VIEW_W&&q.y>=0&&q.y<=VIEW_H)}
+function copyContour(p){return {points:p.points.map(q=>({x:q.x,y:q.y})),...(typeof p.surfacePath==="string"&&/^[MLCQZ0-9., eE+\-]+$/.test(p.surfacePath)?{surfacePath:p.surfacePath}:{})}}
+function validPanels(raw,body=state.body){
+ const out=defaultPanels(body);
+ for(const view of Object.keys(PAIR_MAP))if(Array.isArray(raw?.[view])){
+  out[view]=raw[view].filter(p=>typeof p.id==="string"&&typeof p.name==="string"&&validContour(p)).map(p=>{
+   const components=Array.isArray(p.components)?p.components.filter(validContour).map(copyContour):[];
+   return {id:p.id,name:p.name,...copyContour(p),...(components.length?{components}:{})};
+  });
+ }
+ return out;
+}
 function migratePanelPresets(panels){
  const matches=(p,pts)=>JSON.stringify(p.points)===JSON.stringify(pts.map(([x,y])=>({x,y})));
  const retired=panels.sideB.find(p=>p.id==="sideRear"),oldRear=PREVIOUS_REAR_PANEL_SEEDS.find(p=>p[0]==="sideRear");
@@ -40,14 +51,29 @@ function loadBodyPanels(saved={}){
   if(saved.cowlPresetVersion!==COWL_PRESET_VERSION){
    for(const view of Object.keys(PAIR_MAP)){
     if(!raw||!result[body][view].length){result[body][view]=fresh[view];continue}
-    const existing=result[body][view];
-    for(let i=0;i<existing.length;i++){
-     const old=legacy[view].find(p=>p.id===existing[i].id);
-     const replacement=fresh[view].find(p=>p.id===existing[i].id);
-     if(replacement&&((old&&samePreset(existing[i],old))||isPreviousCowlPreset(existing[i],body,view)))existing[i]=replacement;
+    const existing=result[body][view],updated=[],seen=new Set();
+    const previousStock=p=>{
+     const old=legacy[view].find(q=>q.id===p.id);
+     return Boolean((old&&!p.surfacePath&&!p.components&&samePreset(p,old))||isPreviousCowlPreset(p,body,view));
+    };
+    for(const panel of existing){
+     const id=panel.id==='seat'?'tail':panel.id==='middle'?'under':panel.id;
+     if(seen.has(id))continue;seen.add(id);
+     const replacement=fresh[view].find(p=>p.id===id);
+     const retired=id==='tail'?'seat':id==='under'?'middle':null;
+     const members=retired?existing.filter(p=>p.id===id||p.id===retired):[panel];
+     if(replacement&&members.every(previousStock)){updated.push(replacement);continue}
+     if(replacement&&retired&&(members.length>1||panel.id===retired)){
+      // Keep edited contours as a union in ONE physical print piece.
+      // Separate clip elements preserve holes even when old edits overlap.
+      const components=members.flatMap(p=>p.components||[copyContour(p)]);
+      const combined={...replacement,components};delete combined.surfacePath;
+      updated.push(combined);
+     }else updated.push({...panel,id,...(retired&&replacement?{name:replacement.name}:{})});
     }
     // Add newly available stock pieces while preserving custom partitions.
-    if(existing.every(p=>legacy[view].some(old=>old.id===p.id)))for(const panel of fresh[view])if(!existing.some(p=>p.id===panel.id))existing.push(panel);
+    if(existing.every(p=>p.id==='fender'||legacy[view].some(old=>old.id===p.id)))for(const panel of fresh[view])if(!updated.some(p=>p.id===panel.id))updated.push(panel);
+    result[body][view]=updated;
    }
   }
  }
@@ -58,17 +84,18 @@ state.panelsByBody=loadBodyPanels(savedCowlState);state.panels=state.panelsByBod
 let panelEdit=false,panelShown=true,panelSelected=null,panelDraft=[],panelDrawing=false,panelDrag=null,panelUrls=[];
 const panelLayer=svgEl("g",{id:"panelLayer"});svg.appendChild(panelLayer);
 const panelUI=document.createElement("section");panelUI.className="panel";
-panelUI.innerHTML='<div class="panel-head"><span>カウルごとの分割</span><button id="panelShow" type="button" aria-pressed="true">境界 ON</button></div><div class="base-actions"><select id="panelSelect" aria-label="カウル選択"></select><button id="panelEdit" type="button">境界を調整</button><button id="panelAdd" type="button">区分を追加</button><button id="panelFinish" type="button" hidden>輪郭を確定</button><button id="panelCancel" type="button" hidden>キャンセル</button><button id="panelDelete" type="button">区分を削除</button><button id="panelExport" type="button">各カウルのPNGを作成</button></div><p class="hint">提供された白・黒・緑の各画像に合わせた輪郭を使用。境界を調整→点をドラッグ。追加は輪郭を順にクリックし確定してください。斜め前は各画像に合わせた初期境界を使用します。分割プレビューでカウルを選び、印刷幅を指定して保存できます。</p><div id="panelDownloads" class="base-actions"></div>';
+panelUI.innerHTML='<div class="panel-head"><span>カウルごとの分割</span><button id="panelShow" type="button" aria-pressed="true">境界 ON</button></div><div class="base-actions"><select id="panelSelect" aria-label="カウル選択"></select><button id="panelEdit" type="button">境界を調整</button><button id="panelAdd" type="button">区分を追加</button><button id="panelFinish" type="button" hidden>輪郭を確定</button><button id="panelCancel" type="button" hidden>キャンセル</button><button id="panelDelete" type="button">区分を削除</button><button id="panelExport" type="button">各カウルのPNGを作成</button></div><p class="hint">リア〜シート下、サイド下部〜アンダーは、それぞれ１枚として出力します。輪郭は白・黒・緑の各画像に合わせています。境界を調整→点をドラッグ。追加は輪郭を順にクリックし確定してください。斜め前は各画像に合わせた初期境界を使用します。分割プレビューでカウルを選び、印刷幅を指定して保存できます。</p><div id="panelDownloads" class="base-actions"></div>';
 $(".stage-shell").after(panelUI);
 function currentPanels(){return state.panels[state.view]}
 function panelPath(p){if(p.surfacePath)return p.surfacePath;return "M"+p.points.map(q=>q.x+","+q.y).join(" L")+" Z"}
-function panelBounds(p){const points=p.surfacePath?cowlRings(p.surfacePath).flat():p.points;const xs=points.map(q=>q.x),ys=points.map(q=>q.y);const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));return{x,y,w:Math.max(1,Math.ceil(Math.max(...xs))-x),h:Math.max(1,Math.ceil(Math.max(...ys))-y)}}
+function panelContours(p){return p.components||[p]}
+function panelBounds(p){const points=panelContours(p).flatMap(q=>q.surfacePath?cowlRings(q.surfacePath).flat():q.points);const xs=points.map(q=>q.x),ys=points.map(q=>q.y);const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));return{x,y,w:Math.max(1,Math.ceil(Math.max(...xs))-x),h:Math.max(1,Math.ceil(Math.max(...ys))-y)}}
 function renderPanels(){
  panelLayer.replaceChildren();const list=currentPanels();if(!list.some(p=>p.id===panelSelected))panelSelected=list[0]?.id||null;
  const select=$("#panelSelect");select.replaceChildren();for(const p of list){const option=document.createElement("option");option.value=p.id;option.textContent=p.name;select.appendChild(option)}select.value=panelSelected||"";
  $("#panelEdit").textContent=panelEdit?"調整を終了":"境界を調整";$("#panelFinish").hidden=$("#panelCancel").hidden=!panelDrawing;$("#panelDelete").disabled=!panelSelected||panelDrawing;$("#panelExport").disabled=!list.length||panelDrawing;objectsLayer.style.pointerEvents=panelEdit||panelDrawing?"none":"";
  if(!panelShown&&!panelEdit&&!panelDrawing)return;
- for(const p of list){const selected=p.id===panelSelected;panelLayer.appendChild(svgEl("path",{d:panelPath(p),"fill-rule":"evenodd",fill:panelEdit&&selected?"#00a8ff22":"none",stroke:selected?"#00a8ff":"#ffffff","stroke-width":1.5,"stroke-linejoin":"round","stroke-linecap":"round","vector-effect":"non-scaling-stroke","pointer-events":"none"}));
+ for(const p of list){const selected=p.id===panelSelected;for(const contour of panelContours(p))panelLayer.appendChild(svgEl("path",{d:panelPath(contour),"fill-rule":"evenodd",fill:panelEdit&&selected?"#00a8ff22":"none",stroke:selected?"#00a8ff":"#ffffff","stroke-width":1.5,"stroke-linejoin":"round","stroke-linecap":"round","vector-effect":"non-scaling-stroke","pointer-events":"none"}));
  if(panelEdit&&selected)p.points.forEach((q,i)=>{const handle=svgEl("circle",{cx:q.x,cy:q.y,r:7,fill:"#00a8ff",stroke:"#fff","stroke-width":2});handle.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();snapshot();panelDrag={id:p.id,index:i,view:state.view};svg.setPointerCapture(e.pointerId)});panelLayer.appendChild(handle)})}
  if(panelDraft.length)panelLayer.appendChild(svgEl("polyline",{points:panelDraft.map(q=>q.x+","+q.y).join(" "),fill:"none",stroke:"#ffcc00","stroke-width":3,"pointer-events":"none"}));
 }
@@ -77,7 +104,7 @@ const originalSerialize=serializableState;serializableState=function(){return {.
 const originalRestore=restore;restore=function(raw){panelDrag=null;panelDraft=[];panelDrawing=false;const saved=JSON.parse(raw);state.panelsByBody=loadBodyPanels(saved);state.panels=state.panelsByBody[saved.body||state.body];originalRestore(raw)};
 const originalRender=render;render=function(){state.panels=state.panelsByBody[state.body];originalRender();renderPanels()};
 svg.addEventListener("pointerdown",e=>{if(!panelEdit&&!panelDrawing)return;if(e.target.closest?.("#panelLayer"))return;e.preventDefault();e.stopImmediatePropagation();if(panelDrawing){const p=svgPoint(e);panelDraft.push({x:Math.max(0,Math.min(VIEW_W,p.x)),y:Math.max(0,Math.min(VIEW_H,p.y))});renderPanels()}},true);
-svg.addEventListener("pointermove",e=>{if(!panelDrag)return;e.preventDefault();e.stopImmediatePropagation();const p=currentPanels().find(p=>p.id===panelDrag.id);if(p&&state.view===panelDrag.view){const q=svgPoint(e);delete p.surfacePath;p.points[panelDrag.index]={x:Math.max(0,Math.min(VIEW_W,q.x)),y:Math.max(0,Math.min(VIEW_H,q.y))};renderPanels()}},true);
+svg.addEventListener("pointermove",e=>{if(!panelDrag)return;e.preventDefault();e.stopImmediatePropagation();const p=currentPanels().find(p=>p.id===panelDrag.id);if(p&&state.view===panelDrag.view){const q=svgPoint(e);delete p.surfacePath;delete p.components;p.points[panelDrag.index]={x:Math.max(0,Math.min(VIEW_W,q.x)),y:Math.max(0,Math.min(VIEW_H,q.y))};renderPanels()}},true);
 ["pointerup","pointercancel","lostpointercapture"].forEach(event=>svg.addEventListener(event,()=>panelDrag=null));
 $("#panelSelect").addEventListener("change",e=>{panelSelected=e.target.value;renderPanels()});
 $("#panelShow").addEventListener("click",e=>{panelShown=!panelShown;e.target.textContent=panelShown?"境界 ON":"境界 OFF";e.target.setAttribute("aria-pressed",String(panelShown));renderPanels()});
@@ -87,7 +114,7 @@ $("#panelCancel").addEventListener("click",()=>{panelDrawing=false;panelDraft=[]
 $("#panelFinish").addEventListener("click",()=>{if(panelDraft.length<3){toast("3点以上で輪郭を作ってください");return}snapshot();const p={id:uid(),name:"カウル "+(currentPanels().length+1),points:clone(panelDraft)};currentPanels().push(p);panelSelected=p.id;panelDrawing=false;panelDraft=[];panelEdit=true;render()});
 $("#panelDelete").addEventListener("click",()=>{if(!panelSelected)return;snapshot();state.panels[state.view]=currentPanels().filter(p=>p.id!==panelSelected);panelSelected=null;render()});
 $$("[data-view]").forEach(b=>b.addEventListener("click",()=>{panelDraft=[];panelDrawing=false;panelDrag=null;renderPanels()}));
-function panelExportSvg(p,designNodes,view=state.view,body=state.body){const b=panelBounds(p),root=svgEl("svg",{xmlns:NS,width:b.w,height:b.h,viewBox:[b.x,b.y,b.w,b.h].join(" ")});const defs=svgEl("defs"),clip=svgEl("clipPath",{id:"panelClip",clipPathUnits:"userSpaceOnUse"});clip.appendChild(svgEl("path",{d:panelPath(p),"fill-rule":"evenodd","clip-rule":"evenodd"}));defs.appendChild(clip);const surfaceClip=svgEl("clipPath",{id:"surfaceClip",clipPathUnits:"userSpaceOnUse"});surfaceClip.appendChild(svgEl("path",{d:fairingMask(view,body),"fill-rule":"evenodd","clip-rule":"evenodd"}));defs.appendChild(surfaceClip);root.appendChild(defs);const group=svgEl("g",{"clip-path":"url(#panelClip)"}),surface=svgEl("g",{"clip-path":"url(#surfaceClip)"});for(const node of designNodes)surface.appendChild(node.cloneNode(true));group.appendChild(surface);root.appendChild(group);return root}
+function panelExportSvg(p,designNodes,view=state.view,body=state.body){const b=panelBounds(p),root=svgEl("svg",{width:b.w,height:b.h,viewBox:[b.x,b.y,b.w,b.h].join(" ")});const defs=svgEl("defs"),clip=svgEl("clipPath",{id:"panelClip",clipPathUnits:"userSpaceOnUse"});for(const contour of panelContours(p))clip.appendChild(svgEl("path",{d:cowlNonzeroPath(panelPath(contour)),"fill-rule":"nonzero","clip-rule":"nonzero"}));defs.appendChild(clip);const surfaceClip=svgEl("clipPath",{id:"surfaceClip",clipPathUnits:"userSpaceOnUse"});surfaceClip.appendChild(svgEl("path",{d:fairingMask(view,body),"fill-rule":"evenodd","clip-rule":"evenodd"}));defs.appendChild(surfaceClip);root.appendChild(defs);const group=svgEl("g",{"clip-path":"url(#panelClip)"}),surface=svgEl("g",{"clip-path":"url(#surfaceClip)"});for(const node of designNodes)surface.appendChild(node.cloneNode(true));group.appendChild(surface);root.appendChild(group);return root}
 function clearPanelDownloads(){for(const url of panelUrls)URL.revokeObjectURL(url);panelUrls=[];$("#panelDownloads").replaceChildren()}
 $("#panelExport").addEventListener("click",async()=>{
  if(!currentObjects().length){toast("デザインを配置してください");return}

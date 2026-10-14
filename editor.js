@@ -3,6 +3,7 @@ let transformDrag=null,choosePanel=false;
 function transformedPoint(o,x,y){const a=(o.rot||0)*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return{x:o.x+x*c-y*s,y:o.y+x*s+y*c}}
 function applyObjectScale(target,base,f){if(["rect","stripe","circle","image"].includes(base.type)){target.w=base.w*f;target.h=base.h*f}else if(["text","ax"].includes(base.type))target.size=base.size*f;else if(base.type==="draw"){const b=bbox(base),cx=b.x+b.w/2,cy=b.y+b.h/2;target.points=base.points.map(q=>({x:cx+(q.x-cx)*f,y:cy+(q.y-cy)*f}));target.width=base.width*f}}
 function pointInPanel(point,panel){
+ if(panel.components)return panel.components.some(contour=>pointInPanel(point,contour));
  const rings=panel.surfacePath?cowlRings(panel.surfacePath):[panel.points];
  let inside=false;for(const a of rings)for(let i=0,j=a.length-1;i<a.length;j=i++){const p=a[i],q=a[j];if((p.y>point.y)!==(q.y>point.y)&&point.x<(q.x-p.x)*(point.y-p.y)/(q.y-p.y)+p.x)inside=!inside}return inside
 }

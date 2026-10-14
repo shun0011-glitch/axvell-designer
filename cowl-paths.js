@@ -25,6 +25,34 @@ function cowlRings(path){
 }
 function cowlSignature(value){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16)}
 function isPreviousCowlPreset(panel,body,view){
- const versions=[COWL_PREVIOUS_SIGNATURES,COWL_PREVIOUS_SIGNATURES_V2,COWL_PREVIOUS_SIGNATURES_V3];
+ if(panel.components?.length)return false;
+ const versions=[COWL_PREVIOUS_SIGNATURES,COWL_PREVIOUS_SIGNATURES_V2,COWL_PREVIOUS_SIGNATURES_V3,COWL_PREVIOUS_SIGNATURES_V4];
  return versions.some(version=>{const previous=version[body]?.[view]?.[panel.id];return Boolean(previous&&cowlSignature(JSON.stringify(panel.points))===previous.points&&(!panel.surfacePath||cowlSignature(panel.surfacePath)===previous.path))});
+}
+
+// Canonical winding makes a union of old edited pieces portable to SVG/PDF
+// renderers. Even-odd clips can otherwise knock out overlapping components.
+const cowlNonzeroCache=new Map();
+function cowlNonzeroPath(path){
+ if(cowlNonzeroCache.has(path))return cowlNonzeroCache.get(path);
+ const shapes=path.match(/M[^M]+/g)||[],rings=cowlRings(path);
+ const contains=(point,ring)=>{let hit=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if((a.y>point.y)!==(b.y>point.y)&&point.x<(b.x-a.x)*(point.y-a.y)/(b.y-a.y)+a.x)hit=!hit}return hit};
+ const result=shapes.map((shape,index)=>{
+  const ring=rings[index];let area=0;
+  for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length];area+=a.x*b.y-b.x*a.y}
+  const depth=rings.filter((other,j)=>j!==index&&contains(ring[0],other)).length;
+  if((area>0)===(depth%2===0))return shape;
+  const tokens=shape.match(/[MLCQZ]|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g);let i=0,current,start;const segments=[];
+  const read=()=>({x:Number(tokens[i++]),y:Number(tokens[i++])}),fmt=p=>p.x+','+p.y;
+  while(i<tokens.length){
+   const command=tokens[i++];
+   if(command==='M'){current=read();start=current}
+   else if(command==='L'){const q=read();segments.push({command,from:current,to:q});current=q}
+   else if(command==='C'){const c1=read(),c2=read(),q=read();segments.push({command,from:current,to:q,c1,c2});current=q}
+   else if(command==='Q'){const c1=read(),q=read();segments.push({command,from:current,to:q,c1});current=q}
+   else if(command==='Z'&&(current.x!==start.x||current.y!==start.y))segments.push({command:'L',from:current,to:start});
+  }
+  return 'M'+fmt(start)+' '+segments.reverse().map(s=>s.command==='C'?'C'+fmt(s.c2)+' '+fmt(s.c1)+' '+fmt(s.from):s.command==='Q'?'Q'+fmt(s.c1)+' '+fmt(s.from):'L'+fmt(s.from)).join(' ')+' Z';
+ }).join(' ');
+ if(cowlNonzeroCache.size>150)cowlNonzeroCache.clear();cowlNonzeroCache.set(path,result);return result;
 }
