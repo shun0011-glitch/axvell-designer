@@ -8,7 +8,8 @@ const FAIRING_MASKS={"sideA":"M726.2217,247.3447 L667.2217,293.3447 L628.2217,33
 const AX_POLYS=[[[0,36],[33.8,2],[45.4,2],[70,27.6],[61.4,36],[44.4,36],[53.4,27],[40.4,13.4],[17.8,36]],[[50.6,2],[65,2],[98.2,36],[82.8,36]],[[83.6,0],[100,0],[83.6,16.2],[74.6,8.2]]];
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const stage=$("#stage"),stageScroll=$("#stageScroll"),bikeImg=$("#bikeImg"),svg=$("#designSvg"),objectsLayer=$("#objectsLayer"),selectionLayer=$("#selectionLayer"),imageMissing=$("#imageMissing"),missingFile=$("#missingFile"),imageStatus=$("#imageStatus");
-let state={body:"black",view:"frontA",tool:"select",zoom:1,maskEnabled:true,selected:null,objects:{sideA:[],sideB:[],frontA:[],frontB:[]}};
+let state={body:"green",view:"frontA",tool:"select",zoom:1,maskEnabled:true,selected:null,objects:{sideA:[],sideB:[],frontA:[],frontB:[]}};
+let maskReview=false;
 let history=[],future=[],drag=null,drawing=null,seq=1;
 let controlEdit=null;
 function beginControlEdit(id){const o=selectedObj();if(!o)return;if(controlEdit?.id===id&&controlEdit.objectId===o.id)return;if(controlEdit)finishControlEdit();snapshot();controlEdit={id,objectId:o.id,base:clone(o)}}
@@ -79,6 +80,15 @@ function applyFairingMask(){
   if(state.maskEnabled)objectsLayer.setAttribute("clip-path","url(#fairingClip)");
   else objectsLayer.removeAttribute("clip-path");
   syncMaskButton();
+  syncMaskReview();
+}
+function syncMaskReview(){
+  let layer=$("#maskReviewLayer",svg);
+  if(!layer){layer=svgEl("g",{id:"maskReviewLayer","pointer-events":"none"});svg.insertBefore(layer,objectsLayer)}
+  layer.replaceChildren();
+  if(maskReview)layer.appendChild(svgEl("path",{d:fairingMask(),fill:"#008dff","fill-opacity":.28,"fill-rule":"evenodd",stroke:"#00a8ff","stroke-width":1,"vector-effect":"non-scaling-stroke"}));
+  const button=$("#maskReviewBtn");
+  if(button){button.setAttribute("aria-pressed",String(maskReview));button.textContent=maskReview?"マスク確認を終了":"マスク確認"}
 }
 function syncBodyColorLayer(){ document.querySelector('#bodyColorLayer')?.remove(); }
 function loadBikeImage(){
@@ -155,6 +165,7 @@ $("#baseImagesInput").addEventListener("change",async e=>{
   e.target.value="";
 });
 $("#maskBtn").addEventListener("click",()=>{state.maskEnabled=!state.maskEnabled;render();toast(state.maskEnabled?"カウルマスク ON":"カウルマスク OFF")});
+$("#maskReviewBtn").addEventListener("click",()=>{maskReview=!maskReview;render();if(maskReview)toast("青い部分にデザインが入ります。WHITEで輪郭を確認できます")});
 $("#clearBasesBtn").addEventListener("click",()=>{
   importedBases={};
   localStorage.removeItem("axvellBaseImagesV6");

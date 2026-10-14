@@ -62,7 +62,7 @@ def signature(value):
  h=2166136261
  for ch in value:h=((h^ord(ch))*16777619)&0xffffffff
  return hex(h)[2:]
-# Keep both earlier stock signatures so saved stock shapes upgrade, while edits survive.
+# Keep earlier stock signatures so saved stock shapes upgrade, while edits survive.
 sigs={}
 for body,views in old.items():
  sigs[body]={}
@@ -72,10 +72,17 @@ for body,views in old.items():
 if (ROOT/'tools/cowl-signatures-v2.json').exists():sigs=json.loads((ROOT/'tools/cowl-signatures-v2.json').read_text())
 presets={body:{} for body in ['green','white','black']};masks={body:{} for body in presets}
 exclusions=json.loads((ROOT/'tools/manual-cowl-exclusions.json').read_text())
+openings=json.loads((ROOT/'tools/manual-cowl-openings.json').read_text())
 for view,parts in paths.items():
  excluded=unary_union([make_valid(Polygon(rings(path)[0][0])).buffer(2.5) for path in exclusions[view]])
+ # Air channels share their exact painted edges. Only small hardware gets a buffer.
+ excluded=unary_union([excluded,*[make_valid(Polygon(rings(path)[0][0])) for path in openings[view]]])
  geometries={};anchors={};claimed=GeometryCollection()
- for pid,path in parts.items():
+ # The main painted panel owns its photographic exterior, including the area
+ # beside the air channel that older upper-cowl guides overlapped.
+ order=['tail','seat','tank','nose','side','upper','middle','under','fender']
+ for pid in order:
+  path=parts[pid]
   parsed,allanchors=rings(path);surface=make_valid(Polygon(parsed[0]))
   for hole in parsed[1:]:surface=surface.difference(make_valid(Polygon(hole)))
   surface=make_valid(surface).difference(excluded).difference(claimed)
@@ -85,10 +92,14 @@ for view,parts in paths.items():
   if body=='green':transform=lambda points:np.array(points,float)
   else:transform,_=align(source,cv2.imread(str(ROOT/'assets'/f'{names[view]}-{body}.webp')))
   entries=[]
-  for pid,g in geometries.items():
+  for pid in parts:
+   g=geometries[pid]
    name=next(p['name'] for p in old['green'][view] if p['id']==pid)
    mainrings,_=rings(paths[view][pid].split(' Z')[0]+' Z');points=transform(cv2.approxPolyDP(np.array(mainrings[0],np.float32).reshape(-1,1,2),5,True).reshape(-1,2))
    entries.append({'id':pid,'name':name,'points':[{'x':float(x),'y':float(y)} for x,y in points],'surfacePath':vector(g,transform)})
-  presets[body][view]=entries;masks[body][view]=' '.join(p['surfacePath'] for p in entries)
-(ROOT/'cowl-presets.js').write_text('// Manual fairing exteriors and explicit hardware/opening cutouts.\nconst COWL_PRESET_VERSION=3;\nconst COWL_MASKS='+json.dumps(masks,separators=(',',':'))+';\nconst COWL_PANEL_PRESETS='+json.dumps(presets,separators=(',',':'))+';\nconst COWL_PREVIOUS_SIGNATURES='+(ROOT/'tools/cowl-signatures-v1.json').read_text()+';\nconst COWL_PREVIOUS_SIGNATURES_V2='+json.dumps(sigs,separators=(',',':'))+';\nfunction fairingMask(view=state.view,body=state.body){return COWL_MASKS[body]?.[view]||FAIRING_MASKS[view]||""}\n')
+  presets[body][view]=entries
+  # The display mask has only real outer edges and openings, so independently
+  # fitted partition seams cannot punch tiny gaps into a continuous design.
+  masks[body][view]=vector(unary_union(list(geometries.values())),transform)
+(ROOT/'cowl-presets.js').write_text('// Green-reference fairing contours, white-checked openings, aligned for each body.\nconst COWL_PRESET_VERSION=4;\nconst COWL_MASKS='+json.dumps(masks,separators=(',',':'))+';\nconst COWL_PANEL_PRESETS='+json.dumps(presets,separators=(',',':'))+';\nconst COWL_PREVIOUS_SIGNATURES='+(ROOT/'tools/cowl-signatures-v1.json').read_text()+';\nconst COWL_PREVIOUS_SIGNATURES_V2='+json.dumps(sigs,separators=(',',':'))+';\nconst COWL_PREVIOUS_SIGNATURES_V3='+(ROOT/'tools/cowl-signatures-v3.json').read_text()+';\nfunction fairingMask(view=state.view,body=state.body){return COWL_MASKS[body]?.[view]||FAIRING_MASKS[view]||""}\n')
 print('Built',sum(len(parts) for views in presets.values() for parts in views.values()),'manually traced regions')

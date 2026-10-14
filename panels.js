@@ -99,6 +99,5 @@ $("#panelExport").addEventListener("click",async()=>{
  }catch(err){console.error(err);toast("分割出力に失敗しました。再試行してください")}finally{button.disabled=false}
 });
 // Guide overlays never belong in the composite PNG.
-const originalCloneSvg=svg.cloneNode.bind(svg);svg.cloneNode=function(deep){const copy=originalCloneSvg(deep);copy.querySelector("#panelLayer")?.remove();return copy};
+const originalCloneSvg=svg.cloneNode.bind(svg);svg.cloneNode=function(deep){const copy=originalCloneSvg(deep);copy.querySelector("#panelLayer")?.remove();copy.querySelector("#maskReviewLayer")?.remove();return copy};
 renderPanels();
-
